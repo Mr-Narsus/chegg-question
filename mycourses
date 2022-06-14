@@ -1,0 +1,275 @@
+#!/bin/bash
+coursesFile="$(pwd)/courses"
+
+function CheckID() {
+    helpmsg="There are two ways to write ID:\n
+1. Four small letters followed by 3 digits numbers (For example: abcd123).\n
+2. Three small letters followed by 4 digits numbers (For example: abcd1234).\n"
+    echo -e $helpmsg
+    while : ;do
+    read -p "Enter the ID of the course: " ID
+    regex1='^[a-z]{4}[0-9]{3}$'
+    regex2='^[a-z]{3}[0-9]{4}$'
+    if [[ $ID =~ $regex1 ]] || [[ $ID =~ $regex2 ]] ; then
+        grep -o $ID $coursesFile &>/dev/null
+        if [ "$?" -eq 0 ];then
+            printf "This ID number: $ID is already in use. I am so sorry!\nTry another ID number."
+        else
+            ecode=0
+            break
+        fi
+    else
+        printf "Please Sir, Enter a valid ID number.\n"
+	read -p "Click to Continue..";clear
+    fi;done
+}
+function CheckISBN() {
+    helpmsgIS='Please enter the ISBN of the course as follows: \n \t\t\t x-xxx-xxxx (For example: 1-111-1111)\n
+Replace letter x with a integer number only.'
+    while :
+    do
+        read -p "Enter the ISBN of the course: " ISBN
+        regex3='^[0-9]{1}\-[0-9]{3}\-[0-9]{4}$'
+        if [[ $ISBN =~ $regex3 ]];then
+            ISBN=$ISBN
+            break
+        else
+		printf "Please Sir, Enter a vaild ISBN number.\n"
+		read -p "Click to Continue..";clear
+        fi
+    done
+}
+
+function CreateCourse() {
+    while : ;do
+    CheckID
+    while : ;do
+        read -p "Enter the fullname of the course: " fullname
+        if [ -z "$fullname" ]; then
+            printf "Please Sir Enter the fullname of the course.\n"
+            read -p "Click to continue..";clear
+        else
+            d=$(cat $coursesFile | awk -F, '{print $1}' | cut -c 3- |grep -o "$fullname" &>/dev/null)
+            if [ -z $d ];then
+            data="$fullname"
+            break
+            else
+                printf "This name: $fullname ddis already in use. I am so sorry!\nTry another name.\n"
+                read -p "Click to continue.."
+            fi
+        fi
+    done
+    CheckISBN
+    while :
+    do
+        read -p "Enter the Instructor name (First name): " InstructorF
+        if [ -z "$InstructorF" ] ; then
+            printf "Please Sir, Enter the Instructor name of the course.\n"
+            read -p "Click to continue..";clear
+        else            
+            read -p "Enter the Instructor name (Last name): " InstructorL
+            if [ -z "$InstructorL" ]; then
+                printf "Please Sir, Enter the Instructor name of the course.\n"
+                read -p "Click to continue..";clear
+            else
+                data="$data,$ID,$ISBN,$InstructorF,$InstructorL"
+                echo $data >> $coursesFile
+                printf "Course created successfully!\n"
+                read -p "Click to continue..";clear
+                break;fi
+        fi;done
+        break
+    done
+}
+
+function Remove_Course() {
+    while :
+    do
+    read -p "Enter the ID of the course: " ID2
+    regex1='^[a-z]{4}[0-9]{3}$'
+    regex2='^[a-z]{3}[0-9]{4}$'   
+    if [[ $ID2 =~ $regex1 ]] || [[ $ID2 =~ $regex2 ]] ; then
+    grep -o $ID2 $coursesFile &>/dev/null
+    if [ "$?" -eq 0 ];then
+    line=$(grep -n $ID2 $coursesFile | awk -F: '{print $1}')
+    sed -i "\|$line|d" $coursesFile
+    printf "The Course has been deleted.\n"
+    else
+    printf "The ID number is not stored, enter a valid ID number.\n"
+    fi;fi
+
+    read -p "Do You Want to delete another course? [Yes/No]: " exitr
+    if [ $exitr == "yes" ] || [ $exitr == "Yes" ];then
+        continue
+    elif [ $exitr == "no" ] || [ $exitr == "No" ];then
+        clear;break
+    else
+        printf "Please Sir, Choose option [Yes/No]\n"
+        read -p "Click to continue.."
+    fi;done
+}
+function Remove_All(){
+    echo "" > $coursesFile
+    printf "All courses have been deleted. \n"
+    read -p "Click to continue..";clear
+}
+function Change_ISBN(){
+    while : ; do
+        CheckISBN
+        read -p "Enter The new ISBN: " new_ISBN
+        if [ -z $new_ISBN ]; then
+            printf "Please Sir, Enter the new ISBN.\n"
+            read -p "Click to continue.."
+        else
+            sed -i "s/$ISBN/$new_ISBN/" $coursesFile
+            printf "ISBN changed successfully!\n"
+        fi
+    read -p "Do You Want to change another ISBN? [Yes/No]: " exitI
+    if [ $exitI == "yes" ] || [ $exitI == "Yes" ];then
+        continue
+    elif [ $exitI == "no" ] || [ $exitI == "No" ];then
+        clear;break
+    else
+        printf "Please Sir, Choose option [Yes/No]\n"
+        read -p "Click to continue.."
+    fi;done
+}
+function Change_Last(){
+    while : ; do
+        read -p "Enter The old last name: " old_Last
+        read -p "Enter The new last name: " new_Last
+        if [ -z $new_Last ]; then
+            printf "Please Sir, Enter the new last name.\n"
+            read -p "Click to continue.."
+        else
+            oldNline=$(grep -n $old_Last $coursesFile|awk -F, '{print $5}')
+            sed -i "s/,$oldNline/,$new_Last/" $coursesFile
+        fi
+    read -p "Do You Want to change another last name? [Yes/No]: " exitL
+    if [ $exitL == "yes" ] || [ $exitL == "Yes" ];then
+        continue
+    elif [ $exitL == "no" ] || [ $exitL == "No" ];then
+        clear;break
+    else
+        printf "Please Sir, Choose option [Yes/No]\n"
+        read -p "Click to continue.."
+    fi;done
+
+}
+function Search_Course_WithID() {
+    while : ; do
+    read -p "Enter the ID of the course: " ID3
+    regex1='^[a-z]{4}[0-9]{3}$'
+    regex2='^[a-z]{3}[0-9]{4}$'   
+    if [[ $ID3 =~ $regex1 ]] || [[ $ID3 =~ $regex2 ]] ; then
+    grep -o $ID3 $coursesFile &>/dev/null
+    if [ "$?" -eq 0 ];then
+    printf "The name of the course: $(grep $ID3 $coursesFile | awk -F, '{print $1}')\n"
+    printf "The ID of the course: $(grep $ID3 $coursesFile | awk -F, '{print $2}')\n"
+    printf "The ISBN of the course: $(grep $ID3 $coursesFile | awk -F, '{print $3}')\n"
+    printf "The Instructor of the course: $(grep $ID3 $coursesFile | awk -F, '{print $4,$5}')\n"
+    else
+    printf "The ID number is not stored, enter a valid ID number.\n"
+    fi;fi
+       read -p "Do You Want to search another course? [Yes/No]: " exitID
+    if [ $exitID == "yes" ] || [ $exitID == "Yes" ];then
+        continue
+    elif [ $exitID == "no" ] || [ $exitID == "No" ];then
+        clear;break
+    else
+        printf "Please Sir, Choose option [Yes/No]\n"
+        read -p "Click to continue.."
+    fi; done
+}
+function Search_Course_In() {
+    while : ; do
+    while : ;do
+    read -p "Do You want search by first name or lastname? [F/L]: " InO
+    if [ -z $InO ];then
+        echo "Please Sir, Enter The frist name or the last name. \n"
+        read -p "Click to continue.."
+    elif [ $InO == "f" ] || [ $InO == "F" ];then
+        read -p "Enter the Instructor name: " InsName
+        linamesF=$(cat $coursesFile | awk -F, '{print $4}' | grep $InsName | wc -l)
+        linamesWC=$linamesF
+        if [ $linamesF -eq 0 ]; then 
+            printf "There are not any name with that.\n"
+        else
+            for line in $(seq 1 $linamesWC);do
+            printf "The name of the course: $(cat $coursesFile | grep $InsName | head -$line | tail -1 | awk -F, '{print $1}')\n"
+            printf "The ID of the course: $(cat $coursesFile | grep $InsName | head -$line | tail -1| awk -F, '{print $2}')\n"
+            printf "The ISBN of the course: $(cat $coursesFile | grep $InsName | head -$line| tail -1 | awk -F, '{print $3}')\n"
+            printf "The Instructor of the course: $(cat $coursesFile | grep $InsName | head -$line| tail -1| awk -F, '{print $4,$5}')\n"
+            printf "\n===================================================\n"
+        done;fi;break
+    elif [ $InO == "l" ] || [ $InO == "L" ];then
+        read -p "Enter the Instructor name: " InsNamel
+        linamesLT=$(cat $coursesFile | awk -F, '{print $5}' | grep $InsNamel | wc -l)
+        linamesWC=$linamesLT
+        if [ $linamesLT -eq 0 ]; then 
+            printf "There are not any name with that.\n"
+        else
+            for line in $(seq 1 $linamesWC);do
+            printf "The name of the course: $(cat $coursesFile | grep $InsNamel | head -$line | tail -1 | awk -F, '{print $1}')\n"
+            printf "The ID of the course: $(cat $coursesFile | grep $InsNamel | head -$line | tail -1| awk -F, '{print $2}')\n"
+            printf "The ISBN of the course: $(cat $coursesFile | grep $InsNamel | head -$line| tail -1 | awk -F, '{print $3}')\n"
+            printf "The Instructor of the course: $(cat $coursesFile | grep $InsNamel | head -$line| tail -1| awk -F, '{print $4,$5}')\n"
+            printf "\n===================================================\n"
+        done;fi;break
+    else
+        printf "Please Sir, Choose option [F/L]\n"
+        read -p "Click to continue..\n"
+    fi;done 
+    read -p "Do You Want to search another course? [Yes/No]: " exitID
+    if [ $exitID == "yes" ] || [ $exitID == "Yes" ];then
+        continue
+    elif [ $exitID == "no" ] || [ $exitID == "No" ];then
+        break;clear
+    else
+        printf "Please Sir, Choose option [Yes/No]\n"
+        read -p "Click to continue.."
+    fi;done
+}
+
+while true
+do
+    clear;printf "Choose option from below: \n"
+    select op in "Add Course." "Change Course." "Search Courses."
+    do
+        case $op in
+            "Add Course.")
+                CreateCourse
+                break;;
+            "Change Course.")
+                    select op2 in "Delete a course." "Delete all courses." "Change course info." "Back to Menu."; do
+                    case $op2 in
+                        "Delete a course.")
+                            Remove_Course; break;;
+                        "Delete all courses.")
+                            Remove_All;break;;
+                        "Change course info.")
+                            select op3 in "Change ISBN." "Change Last Name." "Back to Menu."; do
+                                case $op3 in
+                                    "Change ISBN.")
+                                        Change_ISBN;break;;
+                                    "Change Last Name.")
+                                        Change_Last;break;;
+                                    "Back to Menu.")
+                                        break;;
+                                esac;done;;
+                        "Back to Menu.")
+                        break;;
+                            esac;done;;
+            "Search Courses.")
+                select op4 in "Search By ID number." "Search By Name of Instructor." "Back to Menu."; do
+                    case $op4 in
+                        "Search By ID number.")
+                            Search_Course_WithID;break;;
+                        "Search By Name of Instructor.")
+                            Search_Course_In;break;;
+                        "Back to Menu.")
+                            break;;
+                    esac;done
+        esac
+done
+done
